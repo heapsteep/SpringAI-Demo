@@ -1,0 +1,1 @@
+Create a {days} day travel plan for {city}.
