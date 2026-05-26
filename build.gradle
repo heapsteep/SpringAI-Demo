@@ -34,6 +34,16 @@ dependencies {
 
 	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.springframework.ai:spring-ai-starter-model-chat-memory-repository-jdbc'
+
+	// --- RAG dependencies ---
+	// PDF reader (uses PDFBox under the hood)
+	implementation 'org.springframework.ai:spring-ai-pdf-document-reader'
+	// Local ONNX transformer embedding model (free, no API key) - default: all-MiniLM-L6-v2 (384 dims)
+	implementation 'org.springframework.ai:spring-ai-transformers'
+	// PostgreSQL pgvector vector store (auto-config + schema init)
+	implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'	
+	// QuestionAnswerAdvisor (RAG advisor that injects retrieved context into the prompt)
+	implementation 'org.springframework.ai:spring-ai-advisors-vector-store'
 }
 
 dependencyManagement {

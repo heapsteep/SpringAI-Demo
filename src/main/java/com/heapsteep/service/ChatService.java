@@ -4,10 +4,13 @@ import com.heapsteep.tools.ContactsTool;
 import com.heapsteep.tools.WeatherTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,25 +24,39 @@ public class ChatService {
     private final ChatMemory chatMemory;
     private final WeatherTool weatherTool;
     private final ContactsTool contactsTool;
+    private final VectorStore vectorStore;
 
-    public ChatService(ChatClient chatClient, ChatMemory chatMemory, WeatherTool weatherTool, ContactsTool contactsTool) {
+    public ChatService(ChatClient chatClient,
+                       ChatMemory chatMemory,
+                       WeatherTool weatherTool,
+                       ContactsTool contactsTool,
+                       VectorStore vectorStore) {
         this.chatClient = chatClient;
         this.chatMemory = chatMemory;
         this.weatherTool = weatherTool;
         this.contactsTool = contactsTool;
+        this.vectorStore = vectorStore;
     }
 
     public String chat(String conversationId, String message) {
         String convId = (conversationId == null || conversationId.isBlank()) ? UUID.randomUUID().toString() : conversationId;
-        String today= LocalDate.now().toString();
+        String today = LocalDate.now().toString();
 
         Prompt prompt = new Prompt(List.of(
-                new SystemMessage("You are an experienced travel guide. Today's date is " + today),
+                new SystemMessage(
+                        "You are an experienced travel guide for Heapsteep employees. Today's date is " + today
+                                + ". When answering questions about Heapsteep's internal travel policy, rely strictly on "
+                                + "the CONTEXT provided by the retrieval system. If the context does not contain the answer, say so."
+                ),
                 new UserMessage(message)
         ));
 
         return chatClient.prompt(prompt)
-                .advisors(MessageChatMemoryAdvisor.builder(chatMemory).conversationId(convId).build())
+                .advisors(
+                        MessageChatMemoryAdvisor.builder(chatMemory).conversationId(convId).build(),
+                        QuestionAnswerAdvisor.builder(vectorStore)
+                                .build()
+                )
                 .tools(weatherTool, contactsTool)
                 .call()
                 .content();
