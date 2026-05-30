@@ -2,6 +2,8 @@ package com.heapsteep.controller;
 
 import com.heapsteep.model.ChatRequest;
 import com.heapsteep.service.ChatService;
+import com.heapsteep.service.ImageGenerationService;
+import com.heapsteep.service.ImageCaptionService;
 import com.heapsteep.service.RagIngestionService;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
@@ -10,6 +12,8 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,13 +28,19 @@ public class ChatController {
     ChatMemory chatMemory;
 
     private final ChatService chatService;
+    private final ImageCaptionService imageCaptionService;
+    private final ImageGenerationService imageGenerationService;
     private final RagIngestionService ragIngestionService;
     private final VectorStore vectorStore;
 
     public ChatController(ChatService chatService,
+                          ImageCaptionService imageCaptionService,
+                          ImageGenerationService imageGenerationService,
                           RagIngestionService ragIngestionService,
                           VectorStore vectorStore) {
         this.chatService = chatService;
+        this.imageCaptionService = imageCaptionService;
+        this.imageGenerationService = imageGenerationService;
         this.ragIngestionService = ragIngestionService;
         this.vectorStore = vectorStore;
     }
@@ -48,6 +58,24 @@ public class ChatController {
     @GetMapping("/fetchMemoryWithId")
     public List<Message> fetchMemoryWithId(@RequestParam String conversationId){
         return chatMemory.get(conversationId);
+    }
+
+    /**
+     * Generate an image from a text prompt (e.g. "draw a Dubai skyscraper").
+     */
+    @PostMapping(value = "/generate", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> generateImage(@RequestParam String prompt) {
+        byte[] image = imageGenerationService.generate(prompt);
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(image);
+    }
+
+    /**
+     * Upload an image and receive an AI-generated description (image captioning).
+     */
+    @PostMapping(value = "/caption")
+    public String captionImage(@RequestParam("file") MultipartFile file,
+                               @RequestParam(value = "prompt", required = false) String prompt) throws Exception {
+        return imageCaptionService.caption(file, prompt);
     }
 
     /**
