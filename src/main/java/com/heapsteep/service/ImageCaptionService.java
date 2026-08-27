@@ -20,7 +20,7 @@ public class ImageCaptionService {
 
     private final ChatClient chatClient;
 
-    @Value("${spring.ai.vision.model:meta-llama/llama-4-scout-17b-16e-instruct}")
+    @Value("${spring.ai.vision.model}")
     private String visionModel;
 
     public ImageCaptionService(ChatClient chatClient) {
